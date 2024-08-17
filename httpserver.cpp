@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <cerrno>
@@ -24,8 +25,6 @@ void signalHandler(int signal){
 int main(){
 
     std::signal(SIGINT, signalHandler);
-
-    char html[1024] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE html><html><body><h1>C++ http server</h1><p>Testing.</p></body></html> ";
 
     if((HTTPServer = socket(AF_INET, SOCK_STREAM, 0 )) < 0){
         std::cerr << strerror(errno) << std::endl;
@@ -56,7 +55,20 @@ int main(){
             return -1;
         }
 
-        if(send(new_request, html, strlen(html), 0) < 0){
+        std::string html = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n";
+        std::ifstream file("index.html");
+
+        if(!file.is_open()){
+            html += "404 Forbiden";
+            std::cerr << strerror(errno) << std::endl;
+        } else{
+            std::string text;
+            while(getline(file, text)){
+                html += text + "\n";
+            }
+        }
+      
+        if(send(new_request, html.c_str(), html.length(), 0) < 0){
             std::cerr << strerror(errno) << std::endl;
             return -1;
         }
