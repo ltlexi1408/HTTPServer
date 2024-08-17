@@ -64,14 +64,12 @@ int main(){
         }
 
         std::string request(requestBytes, requestRecived);
-        std::cout << request << std::endl;
-        
         std::size_t fplace = request.find(" ");
-        std::string requestFile = request.substr(1, fplace);
-        std::cout << requestFile << std::endl;
+        std::size_t splace = request.find(" ", fplace + 1);
+        std::string requestFile = request.substr(fplace + 1, splace - fplace - 1);
 
         std::string html = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n";
-        std::ifstream file(requestFile);
+        std::ifstream file("." + requestFile);
 
         if(!file.is_open()){
             html += "404 Forbiden";
