@@ -1,6 +1,6 @@
 #include "server.h"
 
-Server::Server(int port = 8080){
+Server::Server(int port){
     this->port = port;
 }
 

@@ -1,3 +1,6 @@
+#ifndef SERVER_H
+#define SERVER_H
+
 #include <iostream>
 #include <fstream>
 #include <sys/socket.h>
@@ -12,9 +15,9 @@
 class Server{
     public:
 
-    Server(int port){};
+    Server(int port = 8080);
     
-    int Start(){};
+    int Start();
 
     private:
     int HTTPServer;
@@ -22,5 +25,7 @@ class Server{
 
     struct sockaddr_in address;
 
-    int Request(int new_request){};
+    static int Request(int new_request);
 };
+
+#endif //SERVER_H
