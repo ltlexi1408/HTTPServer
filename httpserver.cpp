@@ -7,6 +7,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <csignal>
+#include <thread>
 
 #define PORT 8080
 
@@ -20,6 +21,44 @@ void signalHandler(int signal){
     }
 
     exit(signal);
+}
+void httpRequests(int new_request){
+    char requestBytes[4096];
+    ssize_t requestRecived = recv(new_request, requestBytes, 4096 - 1, 0);
+
+    if(requestRecived < 0){
+        std::cerr << strerror(errno) << std::endl;
+        close(new_request);
+    }
+
+    std::string request(requestBytes, requestRecived);
+    std::size_t fplace = request.find(" ");
+    std::size_t splace = request.find(" ", fplace + 1);
+    std::string requestFile = request.substr(fplace + 1, splace - fplace - 1);
+
+    if(!requestFile.compare("/")){
+        requestFile = "/index.html";
+    }
+
+    std::string html = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n";
+    std::ifstream file("." + requestFile);
+
+    if(!file.is_open()){
+        html += "404 Forbiden";
+        std::cerr << strerror(errno) << std::endl;
+    } else{
+        std::string text;
+        while(getline(file, text)){
+            html += text + "\n";
+        }
+    }
+    
+    if(send(new_request, html.c_str(), html.length(), 0) < 0){
+        std::cerr << strerror(errno) << std::endl;
+        close(new_request);
+    }
+
+    close(new_request);
 }
 
 int main(){
@@ -55,38 +94,8 @@ int main(){
             close(new_request);
         }
 
-        char requestBytes[4096];
-        ssize_t requestRecived = recv(new_request, requestBytes, 4096 - 1, 0);
-
-        if(requestRecived < 0){
-            std::cerr << strerror(errno) << std::endl;
-            close(new_request);
-        }
-
-        std::string request(requestBytes, requestRecived);
-        std::size_t fplace = request.find(" ");
-        std::size_t splace = request.find(" ", fplace + 1);
-        std::string requestFile = request.substr(fplace + 1, splace - fplace - 1);
-
-        std::string html = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n";
-        std::ifstream file("." + requestFile);
-
-        if(!file.is_open()){
-            html += "404 Forbiden";
-            std::cerr << strerror(errno) << std::endl;
-        } else{
-            std::string text;
-            while(getline(file, text)){
-                html += text + "\n";
-            }
-        }
-      
-        if(send(new_request, html.c_str(), html.length(), 0) < 0){
-            std::cerr << strerror(errno) << std::endl;
-            close(new_request);
-        }
-
-        close(new_request);
+        std::thread http(httpRequests, new_request);
+        http.detach();
     }
 
     close(HTTPServer);
